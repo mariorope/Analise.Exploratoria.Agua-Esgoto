@@ -1,4 +1,4 @@
-# Analise.Exploratoria.Agua-Esgoto
+# Analise Exploratoria Agua e Esgoto
 
 Nesse projeto foi desenvolvida uma análise exploratória dos dados de condições de saneamento nos estados do Brasil. O principal objetivo era a criação de um gráfico de pontos, mostrando a relação entre a proporção da população atendida com abastecimento e a proporção da população atendida com esgotamento, considerando todos os estados (diferentes cores) e o tamanho da população (tamanho dos pontos). Porém, mais algumas análises, principalmente gráficas, foram executadas.
 
