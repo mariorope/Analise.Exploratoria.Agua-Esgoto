@@ -1,5 +1,5 @@
-# Analise Exploratoria Agua e Esgoto
+# Exploratory Analysis of the Sanitation Condition in Brazil
 
-Nesse projeto foi desenvolvida uma análise exploratória dos dados de condições de saneamento nos estados do Brasil. O principal objetivo era a criação de um gráfico de pontos, mostrando a relação entre a proporção da população atendida com abastecimento e a proporção da população atendida com esgotamento, considerando todos os estados (diferentes cores) e o tamanho da população (tamanho dos pontos). Porém, mais algumas análises, principalmente gráficas, foram executadas.
+In this project, an exploratory analysis of data on sanitation conditions in the states of Brazil was developed. The main objective was to create a scatter plot, showing the relationship between the proportion of the population served with water supply and the proportion of the population served with sanitary sewage, considering all states (different colors) and the size of the population (size of the dots). Moreover, some more analyses, mainly graphical ones, were also performed.
 
-Finalmente, você pode acompanhar todo o desenvolvimento desse projeto, pois explico passo a passo todos os procedimentos que foram utilizados. Primeiramente, vamos carregar os pacotes necessários, os dados e vamos visualizar os dados em formato de tabela. Os dados foram extraídos da Confederação Nacional de Municípios (CNM). url: &lt;https://www.cnm.org.br/municipios/registros/100151/todos>
+Finally, you can follow the entire development of this project, as I explain step by step all the procedures that were used. The data were extracted from the National Confederation of Municipalities (CNM). url: &lt;https://www.cnm.org.br/municipios/registros/100151/todos>
