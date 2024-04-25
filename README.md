@@ -1,4 +1,4 @@
-<h3>: Comprehensive Exploration: Sanitation Conditions Across Brazilian States</h3><br>
+<h3>Título: Exploração das Condições de Saneamento nos Estados Brasileiros</h3><br>
 
 **Introdução:**
 <p align="justify">Este projeto realiza uma análise exploratória detalhada dos dados de saneamento dos diversos estados do Brasil. O objetivo principal foi explorar a relação entre a população atendida por serviços de abastecimento de água e esgotamento sanitário, levando em conta também as diferenças demográficas entre os estados.</p>
