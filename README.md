@@ -1,5 +1,6 @@
 <h3>Title: Comprehensive Exploration: Sanitation Conditions Across Brazilian States</h3>
 
+
 **Introduction:**
 
 <p align="justify">This project delves into an in-depth exploratory analysis of sanitation data across the diverse states of Brazil. The primary aim was to unveil insights into the relationship between the population served with water supply and sanitary sewage, while also considering the demographic variations across states.</p>
