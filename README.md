@@ -1,4 +1,4 @@
-<h4>**Title:** *Comprehensive Exploration: Sanitation Conditions Across Brazilian States*</h4>
+<h3>Title: Comprehensive Exploration: Sanitation Conditions Across Brazilian States</h3>
 
 **Introduction:**
 
