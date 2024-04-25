@@ -1,5 +1,4 @@
-<h3>Title: Comprehensive Exploration: Sanitation Conditions Across Brazilian States</h3>
-
+<h3>Title: Comprehensive Exploration: Sanitation Conditions Across Brazilian States</h3><br>
 
 **Introduction:**
 
