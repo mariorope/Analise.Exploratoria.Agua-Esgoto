@@ -7,7 +7,7 @@ library(ggpubr)
 library(corrplot)
 
 # Carregando os dados
-df <- fread('data/planilha_resumo.csv', skip = 8)
+df <- fread('../data/planilha_resumo.csv', skip = 8)
 
 # Visualizando os dados
 View(df)
