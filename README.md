@@ -6,7 +6,7 @@
 **Objetivo:**
 <p align="justify">O propósito deste projeto é conduzir um exame minucioso das condições de saneamento no Brasil, utilizando técnicas avançadas de visualização de dados para identificar padrões e disparidades. Um foco especial foi dado à criação de um gráfico de dispersão que ilustra a correlação entre a proporção da população atendida por serviços de abastecimento de água e esgotamento sanitário. Neste gráfico, os estados são diferenciados por cores, e o tamanho dos pontos indica a população do estado. Análises adicionais, principalmente gráficas, foram realizadas para fornecer mais insights.</p>
 
-**Dados:**
+**Fonte de Dados:**
 <p align="justify">
 Os dados para este projeto foram obtidos da Confederação Nacional de Municípios (CNM) (<a href="https://www.datascienceacademy.com.br/" target="_blank">https://www.cnm.org.br</a>), oferecendo uma visão abrangente das condições de saneamento nos estados brasileiros. A qualidade e relevância dos dados são fundamentais para a robustez da análise.</p>
 
