@@ -13,7 +13,7 @@ Os dados para este projeto foram obtidos da Confederação Nacional de Municípi
 **Metodologia:**
 <p align="justify">O projeto seguiu uma abordagem metódica passo a passo para garantir a transparência e reprodutibilidade da análise. Cada fase, desde o pré-processamento até a visualização dos dados, foi meticulosamente documentada, proporcionando um entendimento claro das técnicas utilizadas. Ao detalhar os procedimentos adotados, este trabalho serve como recurso valioso para aqueles que desejam replicar ou expandir as descobertas.</p>
 
-**Conclusão:**
+**Comentários Finais e Conclusão:**
 <p align="justify">A análise exploratória trouxe à luz insights sobre as desigualdades nas condições de saneamento entre os estados do Brasil. O gráfico de dispersão demonstrou variações significativas no acesso à infraestrutura de saneamento, com diferenças notáveis entre regiões. As análises gráficas adicionais ajudaram a identificar padrões e correlações que explicam as disparidades observadas no saneamento.</p>
 <p align="justify">Em resumo, este projeto proporciona uma investigação abrangente das condições de saneamento no Brasil, empregando técnicas sofisticadas de visualização para descobrir informações cruciais. Com metodologias detalhadas e explicações transparentes, ele atua como um recurso importante para pesquisadores, formuladores de políticas e stakeholders comprometidos com a melhoria da infraestrutura de saneamento e o enfrentamento das disparidades regionais. Através de análises continuadas e ações baseadas em dados, progressos podem ser alcançados para garantir acesso equitativo às instalações de saneamento para todos os brasileiros.</p>
 
