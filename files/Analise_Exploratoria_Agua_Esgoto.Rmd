@@ -1,0 +1,1157 @@
+---
+title: "Exploração das Condições de Saneamento nos Estados Brasileiros"
+output: html_document
+date: "2021-10-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 2em 0 2em 0">
+<h5>Introdução:</h5>
+
+<p style = "text-align: justify">Este projeto realiza uma análise exploratória detalhada dos dados de saneamento dos diversos estados do Brasil. O objetivo principal foi explorar a relação entre a população atendida com serviços de abastecimento de água e esgotamento sanitário, levando em conta também as diferenças demográficas entre os estados.</p>
+
+<h5>Objetivo:</h5>
+
+<p style = "text-align: justify">O propósito deste projeto é conduzir um exame minucioso das condições de saneamento no Brasil, utilizando técnicas avançadas de visualização de dados para identificar padrões e disparidades. Um foco especial foi dado à criação de um gráfico de dispersão que ilustra a correlação entre a proporção da população atendida com serviços de abastecimento de água e esgotamento sanitário. Neste gráfico, os estados são diferenciados por cores, e o tamanho dos pontos indica a população do estado. Análises adicionais, principalmente gráficas, foram realizadas para fornecer mais insights.</p>
+
+<h5>Fonte de Dados:</h5>
+
+<p style = "text-align: justify">Os dados para este projeto foram obtidos da Confederação Nacional de Municípios (CNM) (https://www.cnm.org.br) para o ano de 2019, os quais oferecem uma visão abrangente das condições de saneamento nos estados brasileiros. A qualidade e relevância dos dados são fundamentais para a robustez da análise.</p>
+
+<h5>Metodologia:</h5>
+
+<p style = "text-align: justify">O projeto seguiu uma abordagem metódica passo a passo para garantir a transparência e reprodutibilidade da análise. Cada fase, desde o pré-processamento até a visualização dos dados, foi meticulosamente documentada, proporcionando um entendimento claro das técnicas utilizadas. Ao detalhar os procedimentos adotados, este trabalho serve como recurso valioso para aqueles que desejam replicar ou expandir as descobertas.</p>
+
+<h5>Commentários Finais e Conclusão:</h5>
+
+<p style = "text-align: justify">A análise exploratória trouxe à luz insights sobre as desigualdades nas condições de saneamento entre os estados do Brasil. O gráfico de dispersão demonstrou variações significativas no acesso à infraestrutura de saneamento, com diferenças notáveis entre regiões. As análises gráficas adicionais ajudaram a identificar padrões e correlações que explicam as disparidades observadas no saneamento.</p>
+
+<p style = "text-align: justify">Em resumo, este projeto proporciona uma investigação abrangente das condições de saneamento no Brasil, empregando técnicas sofisticadas de visualização para descobrir informações cruciais. Com metodologias detalhadas e explicações transparentes, ele atua como um recurso importante para pesquisadores, formuladores de políticas e stakeholders comprometidos com a melhoria da infraestrutura de saneamento e o enfrentamento das disparidades regionais. Através de análises continuadas e ações baseadas em dados, progressos podem ser alcançados para garantir acesso equitativo às instalações de saneamento para todos os brasileiros.</p>
+
+<h5>Dicionário de Variáveis:</h5>
+
+<p style = "text-align: justify">Durante o desenvolvimento deste estudo, foi elaborado um dicionário de variáveis simplificado, contendo apenas as variáveis empregadas no projeto, disponível no arquivo “Dicionario_Variaveis.csv”. Adicionalmente, o dicionário de dados completo, que inclui a descrição de mais de 150 variáveis do dataset original, pode ser acessado no arquivo “Glossario_Informacoes_AE2019.pdf”.</p>
+
+<h4>Vamos começar!</h4>
+</div>
+
+<div style="margin-top: 2em"></div>
+
+<div style="background: #89CFF0; padding: 0.5em 0.5em 1.2em 0.5em; text-align: center"><h3>Pré-processamento dos Dados</h3></div>
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">O projeto começa com o carregamento dos pacotes essenciais para realizar as análises.</div>
+
+```{r Carregando os pacotes}
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(ggpubr)
+library(corrplot)
+library(gridExtra)
+library(jpeg)
+library(patchwork)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Neste ponto, o dataset foi carregado e armazenado em um objeto chamado df. É importante mencionar que o dataset original está na pasta de dados, mas para este projeto, carregamos um dataset organizado que contém a mesma informação que o dataset original. Após o carregamento, as primeiras linhas do dataset são exibidas.</div>
+
+```{r Carregando e visualizando os dados}
+df <- fread('../data/planilha_organizada.csv', skip = 8)
+head(df)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify"> Como observado, o dataset contém várias variáveis (colunas) e cabeçalhos múltiplos, complicando sua visualização.
+
+No passo seguinte, os cabeçalhos foram ajustados e os nomes das colunas foram alterados para refletir os dados da linha 4. A descrição das variáveis estava na primeira linha e foi utilizada para a elaboração do dicionário de variáveis, que encontra-se disponível junto dos arquivos desse projeto (formato csv), e então também foi excluída.</div>
+
+```{r Reorganizando o cabeçalho da tabela}
+df <- rbind(rbind(df[4,],df[1,]), df[5:length(df$V1),])
+df[1,1] <- "estado"
+colnames(df) <- sapply(df[1,], as.character)
+df <- df[-c(1,2),]
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Apenas as variáveis relevantes para este estudo foram selecionadas e o restante foi removido do dataset.</div>
+
+```{r Selecionando as variáveis de interesse}
+df <- df %>%
+  select(estado, GE05a, GE05b, FN002, FN003, AG001, AG007, AG010, ES001, ES005, ES006)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Algumas variáveis, que possuíam descrições ambíguas, foram renomeadas para facilitar a compreensão dos seus significados no dicionário de variáveis. Após as transformações, as primeiras linhas do dataset são apresentadas.</div>
+
+```{r Renomeando a primeira linha dos dados e visualizando o resultado}
+df[1,4] <- "Receitas operacionais diretas com agua"
+df[1,5] <- "Receitas operacionais diretas com esgoto"
+df[1,7] <- "Volume de agua tratada em ETAs"
+df[1,8] <- "Volume de agua consumida"
+df[1,10] <- "Volume de esgoto coletado"
+df[1,11] <- "Volume de esgoto tratado"
+head(df)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Após o pré-processamento dos dados, que incluiu a reorganização e redução do número de variáveis, os dados na tabela ficaram mais claros e acessíveis. Com os dados preparados, na sequência começa a etapa de análise exploratória.</div>
+
+<div style="margin-top: 2em"></div>
+
+<div style="background: #89CFF0; padding: 0.5em 0.5em 1.2em 0.5em; text-align: center"><h3>Análise Exploratória</h3></div>
+
+<div style="margin-top: 2em"></div>
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify"><b>Nota Importante: </b> Todas as análises apresentadas são referentes ao ano de <B>2019</b>.</div>
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Vamos primeiramente visualizar a dimensão dos dados (número de observações (linhas) e número de variáveis (colunas).</div>
+
+```{r Visualizando a dimensao dos dados}
+dim(df)
+```
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">O dataset contém 11 variáveis e 38 observações. Vale destacar que os dados são referentes às unidades federativas e, considerando que o Brasil tem 26 estados e o Distrito Federal, se espera um total de 27 registros, não 38. A discrepância deve-se à inclusão de linhas com nomes de regiões ou outros dados. Esse problema foi abordado nas etapas subsequentes. Na próxima fase, será apresentado o tipo dos dados.</div>
+
+```{r Visualizando o tipo de dados das variáveis}
+glimpse(df)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Todos os dados estavam inicialmente formatados como caracteres. Por isso, todas as variáveis, exceto 'estado', foram convertidas para o tipo numérico. As variáveis com informação de quantidade de municípios ou população foram convertidos para o tipo inteiro, enquanto que as outras variáveis para o tipo decimal.</div>
+
+```{r Mudando o tipo de dados da maioria das variaveis para numerico}
+
+df$GE05a <- as.integer(df$GE05a)
+df$GE05b <- as.integer(df$GE05b)
+df$FN002 <- as.double(sub("\\,", ".", sub("\\.", "", sub("\\.", "", sub("\\.", "", df$FN002)))))
+df$FN003 <- as.double(sub("\\,", ".", sub("\\.", "", sub("\\.", "", sub("\\.", "", df$FN003)))))
+df$AG001 <- as.integer(sub("\\,", ".", sub("\\.", "", sub("\\.", "", sub("\\.", "", df$AG001)))))
+df$AG007 <- as.double(sub("\\,", ".", sub("\\.", "", sub("\\.", "", sub("\\.", "", df$AG007)))))
+df$AG010 <- as.double(sub("\\,", ".", sub("\\.", "", sub("\\.", "", sub("\\.", "", df$AG010)))))
+df$ES001 <- as.integer(sub("\\,", ".", sub("\\.", "", sub("\\.", "", sub("\\.", "", df$ES001)))))
+df$ES005 <- as.double(sub("\\,", ".", sub("\\.", "", sub("\\.", "", sub("\\.", "", df$ES005)))))
+df$ES006 <- as.double(sub("\\,", ".", sub("\\.", "", sub("\\.", "", sub("\\.", "", df$ES006)))))
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Após essa transformação, uma nova variável chamada 'regiao' foi criada e preenchida com os dados de região correspondentes a cada estado.</div>
+
+```{r Criando a variavel regiao}
+df$regiao <- c(rep('Norte',9), rep('Nordeste',11), rep('Sudeste',6), rep('Sul',5), rep('Centro_Oeste',6), 'Brazil')
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify"> No próximo passo, um novo dataset nomeado df_estadual foi criado e alimentado com os dados do dataset df sem os registros referentes à informações regionais. O novo dataset criado pode ser visto abaixo.</div>
+
+```{r Removendo as linhas que não contém informação estadual}
+df_estadual <- df[-c(1,9,10,20,21,26,27,31,32,37,38),]
+df_estadual
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Foram adicionadas duas novas colunas, denominadas 'num_mun' e 'populacao', ao dataset para registrar o número de municípios e a população de cada estado, respectivamente. A população foi utilizada para calcular dados per capita, enquanto o número de municípios ajudou a analisar a proporção de municípios que contam com serviços de abastecimento de água e esgotamento sanitário. Além disso, o número de municípios também serviu para verificar possíveis inconsistências nos dados, uma vez que o número de municípios atendidos com esses serviços deve ser menor que o total de municípios.</div>
+
+```{r Criando duas novas colunas contendo o número de municípios e a população}
+df_estadual <- df_estadual %>%
+  mutate(
+    num_mun = c(22,16,62,144,52,15,139,102,417,184,217,223,185,224,
+                167,75,78,853,92,645,399,497,295,1,246,79,141),
+    populacao = c(894470,861773,4207714,8690745,1796460,631181,1590248,
+                   3351543,14930634,9187103,7114598,4039277,9616621,3281480,
+                   3534165,2318822,4064052,21292666,17366189,46289333,11516840,
+                   11422973,7252502,3055149,7113540,2809394,3526220)
+  )
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">No próximo passo, existência de qualquer inconsistência nos números de municípios nas colunas anteriormente referidas (GE05a e GE05e) foi verificada.</div>
+
+```{r Verificando se algum estado apresenta inconsistencia nas variaveis GE05a e GE05b}
+for (i in 1:length(df_estadual$GE05a)) {
+  if (df_estadual$GE05a[i] > df_estadual$num_mun[i]) {
+    print('Problem with GE05a')
+    print(df_estadual$estado[i])
+  }
+  if (df_estadual$GE05b[i] > df_estadual$num_mun[i]) {
+    print('Problem with GE05b')
+    print(df_estadual$estado[i])
+  }
+}
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Observa-se um problema com o estado de Tocantins (TO). Será necessário verificar esse registro para determinar a magnitude da diferença e decidir o procedimento a ser adotado para corrigir o problema.</div>
+
+```{r Visualizando o estado com problema de inconsistencia para o numero de municipios atendidos com abastecimento de agua}
+df_estadual[df_estadual$estado == "Tocantins (TO)"]
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Como pode ser visto, o estado de Tocantins (TO) possui 139 municípios, mas os dados indicam que 143 municípios recebem abastecimento de água. Considerando que esse cenário é impossível, presume-se que houve um erro de anotação, sugerindo-se que o número correto seria 134, uma hipótese plausível. No entanto, a única maneira de confirmar essa suposição seria através da verificação dos dados primários com granularidade municipal. Portanto, esse valor foi corrigido para 134, pois não deve exceder o total de municípios do estado.</div>
+
+```{r Mudando o dado de Tocatins que estava equivocado para 134}
+for (i in 1:length(df_estadual$GE05a)) {
+  if (df_estadual$estado[i] == 'Tocantins (TO)') {
+    df_estadual$GE05a[i] <- 134
+  }
+}
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify"> Na etapa seguinte, as variáveis 'AG001' e 'ES001', população atendida com abastecimento de água e esgotamento sanitário, respectivamente, foram analisadas para verificar se algum valor dessas variáveis excedia o número da população.</div>
+
+```{r Verificando inconsistencias nas variaveis AG001 e ES001}
+for (i in 1:length(df_estadual$AG001)) {
+  
+  if (df_estadual$AG001[i] > df_estadual$populacao[i]) {
+    print('Problem with AG001')
+    print(i)
+  }
+  
+  if (df_estadual$ES001[i] > df_estadual$populacao[i]) {
+    print('Problem with ES001')
+    print(i)
+  }
+}
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">As variáveis 'AG001' e 'ES001' não mostraram inconsistências. Para identificar a presença de outliers (valores significativamente distantes da média) nas variáveis 'AG007' (volume de água tratada em ETA), 'AG010' (volume de água consumida), 'ES005' (volume de esgoto coletado) e 'ES006' (volume de esgoto tratado), foram criados quatro boxplots. Estes gráficos estão disponíveis para visualização a seguir.</div>
+
+```{r fig.width=10, fig.height=8}
+AG007_plot <- ggplot(data=df_estadual) +
+  geom_boxplot(mapping = aes(y=AG007/populacao)) +
+  ggtitle('AG007') +
+  ylim(0,0.1) +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text('none'),
+    axis.text.x = element_text('none'),
+    axis.text.y = element_text(size=9),
+    axis.ticks.x = element_blank(),
+    legend.position = 'none',
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+AG010_plot <- ggplot(data=df_estadual) +
+  geom_boxplot(mapping = aes(y=AG010/populacao)) +
+  ggtitle('AG010') +
+  ylim(0,0.1) +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text('none'),
+    axis.text.x = element_text('none'),
+    axis.text.y = element_text(size=9),
+    axis.ticks.x = element_blank(),
+    legend.position = 'none',
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+ES005_plot <- ggplot(data=df_estadual) +
+  geom_boxplot(mapping = aes(y=ES005/populacao)) +
+  ggtitle('ES005') +
+  ylim(0,0.1) +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text('none'),
+    axis.text.x = element_text('none'),
+    axis.text.y = element_text(size=9),
+    axis.ticks.x = element_blank(),
+    legend.position = 'none',
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+ES006_plot <- ggplot(data=df_estadual) +
+  geom_boxplot(mapping = aes(y=ES006/populacao)) +
+  ggtitle('ES006') +
+  ylim(0,0.1) +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text('none'),
+    axis.text.x = element_text('none'),
+    axis.text.y = element_text(size=9),
+    axis.ticks.x = element_blank(),
+    legend.position = 'none',
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+  
+ggarrange(AG007_plot,
+          AG010_plot,
+          ES005_plot,
+          ES006_plot,
+          ncol = 2, nrow = 2)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify"> As variáveis examinadas não mostraram a presença de outliers. No próximo passo, foi verificado se o volume de água tratada é superior ao volume de água consumida, se o volume de água consumida excede o volume de esgoto coletado e se o volume de esgoto coletado supera o volume de esgoto tratado. Teoricamente, o volume de água consumida poderia ser inferior ao de esgoto coletado, considerando que parte do consumo poderia originar-se de água pluvial, a qual não é registrada pelos medidores de consumo. No entanto, essa situação não reflete a realidade do Brasil. Neste caso específico, apenas o consumo medido está sendo considerado, e, portanto, espera-se que as verificações confirmem essas expectativas.</div>
+
+```{r Checando problemas com variaveis AG010, ES005 e ES006}
+for (i in 1:length(df_estadual$AG010)) {
+  
+  if (df_estadual$AG010[i] > df_estadual$AG007[i]) {
+    print('Problem with AG010-AG007')
+    print(i)
+  }
+  
+  if (df_estadual$ES005[i] > df_estadual$AG010[i]) {
+    print('Problem with ES005-AG010')
+    print(i)
+  }
+  
+  if (df_estadual$ES006[i] > df_estadual$ES005[i]) {
+    print('Problem with ES006-ES005')
+    print(i)
+  }
+}
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Identificamos problemas em 6 registros onde o volume de água consumida supera o volume de água tratada, uma situação que, como mencionado anteriormente, é impossível, considerando que se trata de consumo medido. Vamos analisar quais são esses registros para decidir como proceder com eles.</div>
+
+```{r Verificando os registros com problema com a combinacao AG007 e AG010}
+df_estadual %>%
+  select(estado, AG007, AG010) %>%
+  slice(4, 7, 8, 11, 15, 26)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Embora não seja possível determinar a origem do erro sem acesso aos dados primários, para os propósitos deste estudo, assumiremos que houve um equívoco na anotação e os valores foram registrados invertidos. Portanto, para prosseguir com o projeto, o maior valor registrado entre os dois foi atribuído à variável de volume de água tratada e o menor ao volume de água consumida.</div>
+
+```{r Mudando os valores da variavel AG007 pelos valores da AG010 e vice-versa}
+for (i in 1:length(df_estadual$AG010)) {
+  if (df_estadual$AG010[i] > df_estadual$AG007[i]) {
+    temp <- df_estadual$AG010[i]
+    df_estadual$AG010[i] <- df_estadual$AG007[i]
+    df_estadual$AG007[i] <- temp
+  }
+}
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Agora que os dados estaduais estão preparados, podemos iniciar algumas análises relevantes. Antes de prosseguir com a análise dos dados estaduais, um novo dataset denominado df_nacional, que agregará a somatória dos dados estaduais para representar os dados nacionais do Brasil.</div>
+
+```{r Criando o novo dataset nacional df_nacional}
+df_nacional <- df_estadual %>%
+  summarise(country = 'Brasil',
+            populacao = sum(populacao),
+            num_mun = sum(num_mun),
+            GE05a = sum(GE05a),
+            GE05b = sum(GE05b),
+            FN002 = sum(FN002),
+            FN003 = sum(FN003),
+            AG001 = sum(AG001),
+            AG007 = sum(AG007),
+            AG010 = sum(AG010),
+            ES001 = sum(ES001),
+            ES005 = sum(ES005),
+            ES006 = sum(ES006))
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">No próximo passo, procederemos com o cálculo da estatística descritiva dos dados estaduais. Esta análise incluirá medidas de tendência central como média e mediana, além de medidas de dispersão como intervalo interquartil. Isso nos permitirá ter uma visão mais clara das características e distribuição dos dados em cada estado, facilitando comparações e identificação de padrões ou anomalias.</div>
+
+```{r Apresentando estatística descritiva dos dados estaduais}
+summary(df_estadual)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">A análise da tabela de estatística descritiva dos dados estaduais revela uma grande variação em todos os parâmetros. Esse cenário provavelmente ocorre devido às significativas variações nas populações e números de municípios nos diversas estados do Brasil. Portanto, para comparações entre dados estaduais e regionais, é necessário realizar ajustes nos dados. Nesse sentido, serão criadas novas variáveis que representam proporções, como a proporção de municípios com acesso a esgotamento sanitário ou a proporção da população atendida com esgotamento sanitário. Essas novas variáveis serão utilizadas nas análises subsequentes para proporcionar uma visão mais equilibrada e comparável dos dados.</div>
+
+```{r Criando as novas variaveis para os dados estaduais}
+df_estadual <- df_estadual %>%
+  mutate(prop_mun_aten_abas_agua = GE05a / num_mun * 100,
+         prop_mun_aten_esgo_sani = GE05b / num_mun * 100,
+         rec_oper_dir_agua_mun_aten = FN002 / GE05a,
+         rec_oper_dir_esgo_mun_aten = FN003 / GE05b,
+         rec_oper_dir_agua_pop_aten = FN002 / AG001,
+         rec_oper_dir_esgo_pop_aten = FN003 / ES001,
+         prop_pop_aten_abas_agua = AG001 / populacao * 100,
+         prop_vol_agua_trat_pop_aten = (AG007 * 1000) / AG001,
+         prop_vol_agua_cons_pop_aten = (AG010 * 1000) / AG001,
+         prop_pop_aten_esgo_sani = ES001 / populacao * 100,
+         prop_vol_esgo_cole_pop_aten = (ES005 * 1000) / AG001,
+         prop_vol_esgo_trat_pop_aten = (ES006 * 1000) / AG001,
+         prop_vol_agua_cons_agua_trat = AG010 / AG007 * 100,
+         prop_vol_esgo_cole_agua_cons = ES005 / AG010 * 100,
+         prop_vol_esgo_cole_agua_cons = ES005 / (AG010) * 100,
+         prop_vol_esgo_trat_esgo_cole = ES006 / ES005  * 100,
+         prop_vol_esgo_trat_agua_cons = ES006 / AG010 * 100,
+         prop_vol_esgo_trat_agua_cons = ES006 / (AG010)  * 100)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">No próximo passo, as mesmas variáveis que foram criadas anteriormente para o dataset estadual foram replicadas para o dataset nacional.</div>
+
+```{r Adicionando variaveis ao df_nacional}
+df_nacional <- df_nacional %>%
+  mutate(prop_mun_aten_abas_agua = GE05a / num_mun * 100,
+         prop_mun_aten_esgo_sani = GE05b / num_mun * 100,
+         rec_oper_dir_agua_mun_aten = FN002 / GE05a,
+         rec_oper_dir_esgo_mun_aten = FN003 / GE05b,
+         rec_oper_dir_agua_pop_aten = FN002 / AG001,
+         rec_oper_dir_esgo_pop_aten = FN003 / ES001,
+         prop_pop_aten_abas_agua = AG001 / populacao * 100,
+         prop_vol_agua_trat_pop_aten = (AG007 * 1000) / AG001,
+         prop_vol_agua_cons_pop_aten = (AG010 * 1000) / AG001,
+         prop_pop_aten_esgo_sani = ES001 / populacao * 100,
+         prop_vol_esgo_cole_pop_aten = (ES005 * 1000) / AG001,
+         prop_vol_esgo_trat_pop_aten = (ES006 * 1000) / AG001,
+         prop_vol_agua_cons_agua_trat = AG010 / AG007 * 100,
+         prop_vol_esgo_cole_agua_cons = ES005 / AG010 * 100,
+         prop_vol_esgo_cole_agua_cons = ES005 / (AG010) * 100,
+         prop_vol_esgo_trat_esgo_cole = ES006 / ES005  * 100,
+         prop_vol_esgo_trat_agua_cons = ES006 / AG010 * 100,
+         prop_vol_esgo_trat_agua_cons = ES006 / (AG010)  * 100)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Foram introduzidas duas novas variáveis denominadas 'estado_sigla' e 'estado_sem_sigla'. Essas variáveis foram criadas devido à presença do nome completo do estado e sua sigla na variável 'estado'. Para garantir uma visualização mais concisa dos gráficos, apenas as siglas dos estados foram utilizadas como rótulos nos gráficos.</div>
+
+```{r Criacao de uma variavel com as siglas dos estados e outra com o nome do estado}
+df_estadual$estado_sigla = ''
+df_estadual$estado_sem_sigla = ''
+for (i in 1:length(df_estadual$estado)) {
+  position = unlist(gregexpr('\\(', df_estadual$estado[i]))
+  df_estadual$estado_sigla[i] <- substr(df_estadual$estado[i], position+1, position+2)
+  df_estadual$estado_sem_sigla[i] <- substr(df_estadual$estado[i], 1, position-1)
+}
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Após a criação dessas variáveis, avançaremos com a análise dos dados estaduais. Nesta etapa inicial, foram examinadas as proporções de municípios atendidos com abastecimento de água e com esgotamento sanitário.</div>
+
+```{r fig.width=10, fig.height=8}
+# Criando o plot para a proporção de municípios atendidos com abastecimento de água
+prop_mun_aten_abas_agua_plot <-
+  ggplot() +
+  geom_col(data=df_estadual, mapping=aes(x=estado_sigla, y=prop_mun_aten_abas_agua,  color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = prop_mun_aten_abas_agua), color='red', size=0.2) + ylim(0,100) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Proporção de Municípios (%)') +
+   ggtitle('Proporção de Municípios Atendidos com Abastecimento Água') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+# Criando o plot para a proporção de municípios atendidos com esgotamento sanitário
+prop_mun_aten_esgo_sani_plot <-
+  ggplot() +
+  geom_col(data=df_estadual, mapping=aes(x=estado_sigla, y=prop_mun_aten_esgo_sani, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = prop_mun_aten_esgo_sani), color='red', size=0.2) + ylim(0,100) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Proporção de Municípios (%)') +
+  ggtitle('Proporção de Municípios Atendidos com Esgotamento Sanitário') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+ggarrange(prop_mun_aten_abas_agua_plot,
+          prop_mun_aten_esgo_sani_plot,
+          ncol = 1, nrow = 2, common.legend = TRUE, legend = "bottom")
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">No Brasil, a cobertura do abastecimento de água apresentou uma significativa variação entre os estados, apesar de muitos excederem a média nacional de 92,9%. Estados como Acre (AC), Amapá (AP), Roraima (RR), Sergipe (SE), Tocantins (TO) e o Distrito Federal (DF) alcançaram uma cobertura de 100%, refletindo uma infraestrutura de abastecimento de água bem desenvolvida. Em contraste, o Pará (PA) e o Amazonas (AM) apresentaram as coberturas mais baixas, com 40,3% e 59,7%, respectivamente, indicando deficiências significativas nos serviços de abastecimento de água nesses estados.
+
+Quanto ao esgotamento sanitário, observou-se uma heterogeneidade ainda maior entre os estados. São Paulo (SP) e o Distrito Federal (DF) exibiram altas taxas de cobertura, enquanto a maioria dos estados mostraram proporções substancialmente inferiores à média nacional. Os estados do Norte, como Acre (AC) e Amazonas (AM), e alguns do Nordeste, como Maranhão (MA) e Piauí (PI), registraram as menores taxas de cobertura, destacando as falhas críticas na infraestrutura de saneamento básico.
+
+A cobertura de abastecimento de água entre os estados brasileiros foi relativamente uniforme, indicando uma distribuição ampla dessa infraestrutura. No entanto, a cobertura de esgotamento sanitário variou significativamente entre as regiões. A região Sudeste sobressaiu com a maior proporção de municípios atendidos, enquanto as regiões Norte e Nordeste registraram as menores proporções, evidenciando disparidades regionais marcantes na infraestrutura de saneamento.
+
+Além disso, foi realizada uma análise sobre a proporção da população com acesso ao abastecimento de água e ao esgotamento sanitário, proporcionando uma compreensão mais aprofundada das necessidades e lacunas no acesso a esses serviços essenciais.</div>
+
+```{r fig.width=10, fig.height=8}
+prop_pop_aten_abas_agua_plot <-
+  ggplot() +
+  geom_col(data=df_estadual, mapping=aes(x=estado_sigla, y=prop_pop_aten_abas_agua, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = prop_pop_aten_abas_agua), color='red', size=0.2) + ylim(0,100) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Proporção da População (%)') +
+  ggtitle('Proporção da Popopulação Atendida com Abastecimento Água') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+
+prop_pop_aten_esgo_sani_plot <-
+  ggplot() +
+  geom_col(data=df_estadual, mapping=aes(x=estado_sigla, y=prop_pop_aten_esgo_sani, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = prop_pop_aten_esgo_sani), color='red', size=0.2) + ylim(0,100) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Proporção da População (%)') +
+  ggtitle('Proporção da Popopulação Atendida com Esgotamento Sanitátio') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+ggarrange(prop_pop_aten_abas_agua_plot,
+          prop_pop_aten_esgo_sani_plot,
+          ncol = 1, nrow = 2, common.legend = TRUE, legend = "bottom")
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">
+Embora estados como Acre (AC) e Amapá (AP) tenham alcançado uma cobertura de 100% nos municípios atendidos com abastecimento de água, a proporção da população efetivamente atendida foi significativamente menor, com 47,3% e 33,7% respectivamente. Essa discrepância sinaliza uma distribuição desigual dos serviços de água dentro desses estados. Em contraste, o Distrito Federal (DF), e os estados São Paulo (SP), Paraná (PR) e Rio de Janeiro (RJ) exibiram altas proporções de população atendida, refletindo uma infraestrutura de abastecimento de água mais desenvolvida e eficaz.
+
+No que diz respeito ao esgotamento sanitário, estados do Norte como Rondônia (RO), Pará (PA), Amapá (AP) e Acre (AC) registraram os menores índices de atendimento populacional, todos abaixo de 10%. Esta deficiência aponta para problemas graves na infraestrutura de saneamento básico dessas áreas, em forte contraste com o restante do país. A maioria dos estados apresentou coberturas de esgotamento sanitário abaixo da média nacional, destacando a necessidade urgente de investimentos em infraestrutura de saneamento nessas regiões.
+
+A cobertura de abastecimento de água na população foi geralmente uniforme entre as regiões, exceto no Norte, onde menos de 50% da população foi atendida, evidenciando uma lacuna significativa em comparação com outras regiões que mostraram altas taxas de cobertura. A região Sudeste se destacou pela maior proporção da população atendida com esgotamento sanitário, substancialmente acima da média nacional, enquanto as regiões Norte e Nordeste registraram as menores proporções. A próxima etapa da análise se concentrou nas receitas operacionais diretas com água e esgoto.</div>
+
+```{r fig.width=10, fig.height=8}
+rec_oper_dir_agua_mun_aten_plot <-
+  ggplot() +
+  geom_col(data=df_estadual[df_estadual$estado != 'Distrito Federal (DF)' & df_estadual$estado != 'Rio de Janeiro (RJ)',], mapping=aes(x=estado_sigla, y=rec_oper_dir_agua_mun_aten, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = rec_oper_dir_agua_mun_aten), color='red', size=0.2) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Receita (R$/município/ano)') +
+  ggtitle('Receitas Operacionais Diretas com Água por Município (somente municípios atendidos)') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11, face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+rec_oper_dir_esgo_muni_aten_plot <-
+  ggplot() +
+  geom_col(data=df_estadual[df_estadual$estado != 'Distrito Federal (DF)' & df_estadual$estado != 'Rio de Janeiro (RJ)',], mapping=aes(x=estado_sigla, y=rec_oper_dir_esgo_mun_aten, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = rec_oper_dir_esgo_mun_aten), color='red', size=0.2) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Receita (R$/município/ano)') +
+  ggtitle('Receitas Operacionais Diretas com Esgoto por Município (somente municípios atendidos)') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+ggarrange(rec_oper_dir_agua_mun_aten_plot,
+          rec_oper_dir_esgo_muni_aten_plot,
+          ncol = 1, nrow = 2, common.legend = TRUE, legend = "bottom")
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">O estudo das receitas operacionais diretas provenientes dos serviços de abastecimento de água por município revelou discrepâncias significativas entre os estados brasileiros. São Paulo (SP) e Amazonas (AM) destacaram-se com as maiores receitas, indicativas de alta eficiência ou demanda intensa por esses serviços. Notavelmente, o Rio de Janeiro (RJ) e o Distrito Federal (DF), com receitas de R$ 59.684.959 e R$ 938.573.359 respectivamente em 2019, foram excluídos da análise visual devido a suas receitas excepcionalmente altas, que superaram em múltiplos as do Amazonas, o mais alto entre os estados incluídos. Em contraste, estados como Acre (AC), Amapá (AP), Maranhão (MA), Paraíba (PB), Piauí (PI) e Tocantins (TO) apresentaram as menores receitas, atingindo apenas cerca de 20% do que foi registrado por São Paulo.
+
+Similarmente, as receitas derivadas dos serviços de esgotamento sanitário seguiram um padrão comparável ao abastecimento de água, com estados do Sul e Sudeste exibindo as maiores receitas. Estes resultados podem refletir infraestruturas de saneamento mais desenvolvidas ou políticas tarifárias mais eficazes. Por outro lado, estados do Norte e Nordeste como Amapá (AP), Pará (PA), Rondônia (RO), Piauí (PI) e Rio Grande do Norte (RN) mostraram as menores receitas, sugerindo desafios relacionados à infraestrutura ou gestão.
+
+As receitas operacionais diretas per capita com água nas regiões Sul e Centro-Oeste foram as mais elevadas, indicando possivelmente uma maior eficiência operacional ou tarifação mais alta por usuário. Em contraste, as regiões Norte e Nordeste registraram as menores receitas per capita, apontando para potenciais ineficiências ou menores taxas de cobrança.
+
+Estes dados preliminares sugerem uma correlação entre a eficiência econômica dos serviços de água e esgoto e a capacidade administrativa e infraestrutural dos estados. Na próxima fase do estudo, as receitas operacionais diretas per capita com água e esgoto foram avaliadas.</div>
+
+```{r fig.width=10, fig.height=8}
+rec_oper_dir_agua_pop_aten_plot <-
+  ggplot() +
+  geom_col(data=df_estadual, mapping=aes(x=estado_sigla, y=rec_oper_dir_agua_pop_aten, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = rec_oper_dir_agua_pop_aten), color='red', size=0.2) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Receita (R$ per capita/ano)') +
+  ggtitle('Receitas Operacionais Diretas per Capita com Água (somente população atendida)') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+rec_oper_dir_esgo_pop_aten_plot <-
+  ggplot() +
+  geom_col(data=df_estadual, mapping=aes(x=estado_sigla, y=rec_oper_dir_esgo_pop_aten, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = rec_oper_dir_esgo_pop_aten), color='red', size=0.2) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Receita (R$ per capita/ano)') +
+  ggtitle('Receitas Operacionais Diretas per Capita com Esgoto (somente municípios atendidos)') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+ggarrange(rec_oper_dir_agua_pop_aten_plot,
+          rec_oper_dir_esgo_pop_aten_plot,
+          ncol = 1, nrow = 2, common.legend = TRUE, legend = "bottom")
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">No gráfico em questão, nota-se que, similarmente ao observado nas receitas operacionais diretas com água por município, os estados da região Norte exibiram as menores receitas per capita. Especificamente, os estados do Pará (PA) e Roraima (RR) registraram receitas de R$ 126,33 e R$ 134,69, respectivamente. Em contrapartida, estados como Rio Grande do Sul (RS), Mato Grosso do Sul (MS), Rio de Janeiro (RJ), Distrito Federal (DF) e Santa Catarina (SC) apresentaram as maiores receitas operacionais diretas per capita com água, com valores superiores a R$ 300,00. Contudo, a maioria dos estados ainda se situa abaixo da média nacional para este indicador.
+
+Quanto às receitas operacionais diretas per capita com esgoto, as mais elevadas foram observadas no Distrito Federal, alcançando R$ 296,75, seguidas pelas do Rio de Janeiro (RJ) e Santa Catarina (SC). Assim como nas receitas com água, os estados da região Norte, incluindo Roraima (RR), Rondônia (RO), Pará (PA) e Acre (AC), também tiveram as menores receitas per capita com esgoto. É importante ressaltar que, entre todos os estados, apenas o Maranhão (MA) e o Amapá (AP) apresentaram receitas operacionais diretas per capita com água inferiores às suas receitas per capita com esgoto.
+
+Quando considerando as receitas operacionais diretas per capita com esgoto, a região Centro-Oeste teve a maior receita per capita, seguida de perto pelo Sudeste, ambos acima do valor nacional. O Norte e o Nordeste apresentaram os menores valores per capita, indicando uma menor capacidade de geração de receita por usuário neste serviço, dificultando ainda mais a tão necessitada melhoria da infraestrutura de esgotamento sanitário dessas regiões.
+
+Um outro gráfico que apresenta o volume per capita de água tratada e consumida, bem como do volume de esgoto coletado e tratado para auxiliar na análise desses parâmetros foi criado. As linhas horizontais representam os volumes per capita para todo o país. De baixo para cima, as linhas representam os volumes de esgoto tratado, esgoto coletado, água consumida e água tratada.</div>
+
+```{r fig.width=10, fig.height=5}
+# Criando o plot nacional para os volumes
+plot_nacional <- ggplot(data=df_nacional) +
+  geom_col(aes(x=country, y=prop_vol_agua_trat_pop_aten), fill='lightblue', alpha=0.5) +
+  geom_col(aes(x=country, y=prop_vol_agua_cons_pop_aten), fill='blue', alpha=0.5) +
+  geom_col(aes(x=country, y=prop_vol_esgo_cole_pop_aten), fill='brown', alpha=0.5) +
+  geom_col(aes(x=country, y=prop_vol_esgo_trat_pop_aten), fill='red', alpha=0.5) +
+  stat_count(geom = "text", colour = "black", size = 3.5, aes(x=country, label = round(prop_vol_agua_trat_pop_aten, 0),), position=position_stack(vjust=69)) +
+  stat_count(geom = "text", colour = "black", size = 3.5, aes(x=country, label = round(prop_vol_agua_cons_pop_aten, 0),), position=position_stack(vjust=46)) +
+  stat_count(geom = "text", colour = "black", size = 3.5, aes(x=country, label = round(prop_vol_esgo_cole_pop_aten, 0),), position=position_stack(vjust=30)) +
+  stat_count(geom = "text", colour = "black", size = 3.5, aes(x=country, label = round(prop_vol_esgo_trat_pop_aten, 0),), position=position_stack(vjust=15)) +
+  ylab(bquote(bold('Volume per capita ('~m^3*' )'))) +
+  xlab('') +
+  ylim(0,100) +
+  theme(
+    axis.title = element_text(size = 11,  hjust = 0.5, face = 'bold'),
+    axis.text = element_text(size = 10),
+    legend.text = element_text(size = 7),
+    legend.title = element_text(size = 8, face = 'bold'),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+    )
+
+# Criando o plot regional para os volumes
+plot_regional <- ggplot(data=df_estadual) +
+  geom_col(aes(x=estado_sigla, y=prop_vol_agua_trat_pop_aten), fill='lightblue', alpha=0.5) +
+  geom_col(aes(x=estado_sigla, y=prop_vol_agua_cons_pop_aten), fill='blue', alpha=0.5) +
+  geom_col(aes(x=estado_sigla, y=prop_vol_esgo_cole_pop_aten), fill='brown', alpha=0.5) +
+  geom_col(aes(x=estado_sigla, y=prop_vol_esgo_trat_pop_aten), fill='red', alpha=0.5) +
+  xlab('Estado') +
+  ylim(0,100) +
+  theme(
+    axis.title.x = element_text(size=11, face='bold'),
+    axis.title.y = element_text('none'),
+    axis.text = element_text(size=10),
+    legend.text = element_text(size = 7),
+    legend.title = element_text(size = 8, face = 'bold'),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+    )
+
+h1 <- geom_hline(yintercept = df_nacional$prop_vol_agua_trat_pop_aten, size=0.2, color='black')
+h2 <- geom_hline(yintercept = df_nacional$prop_vol_agua_cons_pop_aten, size=0.2, color='black')
+h3 <- geom_hline(yintercept = df_nacional$prop_vol_esgo_cole_pop_aten, size=0.2, color='black')
+h4 <- geom_hline(yintercept = df_nacional$prop_vol_esgo_trat_pop_aten, size=0.2, color='black')
+
+my_legend <- readJPEG("../images/legend_custom.jpeg", native = TRUE)
+
+annotate_figure(grid.arrange(plot_nacional, plot_regional+h1+h2+h3+h4, ncol=2, widths = c(1,6)),
+                top = text_grob("Volume per Capita de Água Tratada e Consumida, Esgoto Coletado e Tratado (somente população atendida)", 
+               face = "bold", size = 12)) + inset_element(p = my_legend, 
+                              left = 0.19, 
+                              bottom = 0.86, 
+                              right = 0.66, 
+                              top = 0.93)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Nessa etapa é apresentada uma análise detalhada do abastecimento de água e tratamento de esgoto no Brasil, com variações significativas observadas entre os estados. Em 2019, nove estados, incluindo São Paulo (SP), Sergipe (SE), Santa Catarina (SC), Rio Grande do Sul (RS), Rondônia (RO), Rio de Janeiro (RJ), Minas Gerais (MG), Espírito Santo (ES) e Acre (AC), superaram a média nacional de 78,5 m³ de água tratada per capita. Notavelmente, Amapá (AP) exibiu um volume tão elevado que foi excluído do gráfico para evitar distorções visuais. O Rio de Janeiro e o Acre trataram mais de 100 m³ por pessoa, enquanto o Rio de Janeiro registrou o maior consumo de água per capita de 80 m³, cerca de 220 litros por dia. Em contraste, o Rio Grande do Norte teve o menor consumo, com 27,8 m³ por pessoa, ou aproximadamente 76,2 litros per capita por dia.
+
+Quanto ao esgotamento sanitário, apenas uma fração do esgoto foi coletada na maioria dos estados, com destaque para o Rio de Janeiro, São Paulo, Minas Gerais e o Distrito Federal, que apresentaram os maiores volumes per capita coletados. Em contrapartida, Rondônia registrou o menor volume de esgoto coletado, indicando deficiências na coleta de esgoto. A região Sudeste, apesar de coletar volumes significativos de esgoto, apresentou baixas taxas de tratamento em relação ao volume coletado, evidenciando uma gestão ineficaz e desperdício de recursos.
+
+A análise regional mostrou que o Sudeste e Centro-Oeste estão acima da média nacional tanto no tratamento quanto na coleta de esgoto, enquanto as regiões Norte e Nordeste apresentaram os menores índices. O Norte, em particular, registra os menores volumes per capita de esgoto tratado e coletado. Apesar da alta capacidade de tratamento de água no Sudeste, esta região também sofre com perdas significativas durante a distribuição.
+
+No contexto brasileiro, conforme ilustrado pelo gráfico à esquerda, observou-se que, no ano de 2019, cerca de 78 m³ de água per capita foram tratados. No entanto, apenas 57 m³ dessa água foram de fato consumidos por pessoa, indicando uma perda de aproximadamente 21 m³ per capita durante o processo de distribuição, o que representa 27% do total tratado. Quanto ao esgotamento sanitário, foram coletados 34 m³ de esgoto por pessoa, dos quais 26 m³ foram tratados, correspondendo a 76% do volume per capita coletado.
+
+A seção seguinte desse estudo analisa as relações entre o volume de água consumida e o volume de água tratada, além das proporções entre o volume de esgoto coletado e o volume de água consumida, e entre o volume de esgoto coletado e o volume de esgoto tratado.</div>
+
+```{r fig.width=10, fig.height=12}
+prop_vol_agua_cons_agua_trat_plot <- ggplot(data=df_estadual) +
+  geom_col(mapping = aes(x=estado_sigla, y=prop_vol_agua_cons_agua_trat, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = prop_vol_agua_cons_agua_trat), color='red', size=0.2) +
+  ylim(0, 100) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Proporção (%)') +
+  ggtitle('Proporção entre o Volume de Água Consumida e o Volume de Água Tratada') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+prop_vol_esgo_cole_agua_cons_plot <- ggplot(data=df_estadual) +
+  geom_col(mapping = aes(x=estado_sigla, y=prop_vol_esgo_cole_agua_cons, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = prop_vol_esgo_cole_agua_cons), color='red', size=0.2) +
+  ylim(0, 100) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Proporção (%)') +
+  ggtitle('Proporção entre o Volume de Esgoto Coletado e o Volume de Água Consumida') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11, face = 'bold'),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+prop_vol_esgo_trat_esgo_cole_plot <- ggplot(data=df_estadual) +
+  geom_col(mapping = aes(x=estado_sigla, y=prop_vol_esgo_trat_esgo_cole, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = prop_vol_esgo_trat_esgo_cole), color='red', size=0.2) +
+  ylim(0, 100) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Proporção (%)') +
+  ggtitle('Proporção entre o Volume de Esgoto Tratado e o Volume de Esgoto Coletado') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+ggarrange(prop_vol_agua_cons_agua_trat_plot,
+          prop_vol_esgo_cole_agua_cons_plot,
+          prop_vol_esgo_trat_esgo_cole_plot,
+          ncol = 1, nrow = 3, common.legend = TRUE, legend = "bottom")
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">A maioria dos estados apresentou uma relação entre o volume de água consumida e água tratada (gráfico superior) bastante próxima à média nacional, com variações ligeiramente acima ou abaixo, embora a maioria tenha registrado valores abaixo dessa média. Entre os estados com as maiores proporções de água consumida em relação à água tratada, destacam-se Alagoas (AL), Maranhão (MA) e Goiás (GO). Por outro lado, estados da região Norte como Acre (AC), Amazonas (AM) e Amapá (AP) mostraram as menores proporções, com 41.8%, 43.9% e 28.6%, respectivamente, indicando maiores perdas de água durante a distribuição.
+
+Quanto à relação entre o volume de esgoto coletado e o volume de água consumida (gráfico intermediário), os maiores índices foram observados nas regiões Centro-Oeste e Sudeste, mais especificamente no Distrito Federal e nos estados de Minas Gerais (MG) e São Paulo (SP), todos excedendo 75%, seguidos de perto por Roraima (RR) e Paraná (PR). Em contraste, os estados com as menores proporções, abaixo de 20%, incluem Acre (AC), Alagoas (AL), Amapá (AP), Pará (PA), Piauí (PI) e Rondônia (RO), todos pertencentes às regiões Norte e Nordeste. Notavelmente, os estados do Nordeste, como Alagoas e Maranhão, que registraram maiores proporções entre o volume de água consumida e água tratada, apresentaram proporções significativamente inferiores de coleta de esgoto em relação a esse consumo, com Alagoas sendo um dos estados com as menores relações entre o volume de esgoto coletado e o volume de água consumida. Isso mostra o descaso ou a dificuldade encontrada por alguns estados para priorizar a coleta de esgoto da mesma forma que a distribuição de água.
+
+A análise do gráfico inferior revela que a maioria dos estados exibe uma alta proporção de tratamento do esgoto coletado, muitos superando a média nacional. Isso indica que uma parcela significativa do esgoto coletado nesses estados é tratada antes de ser descartada. Notavelmente, o Distrito Federal (DF) e o estado do Acre (AC) tratam 100% do esgoto que coletam. Em contraste, estados como Pará (PA) e Maranhão (MA) apresentam as menores proporções de tratamento em relação ao esgoto coletado, ficando bem abaixo da média nacional. De um modo geral, as regiões Sul e Centro-Oeste mostraram os valores mais altos. Esses dados podem refletir lacunas na infraestrutura de tratamento de esgoto ou falhas na implementação de políticas de saneamento nesses estados, resultando em uma menor fração de esgoto tratado.
+
+Entretanto, é importante considerar que é mais vantajoso tratar 50% do esgoto de um total de 80% coletado, do que tratar 100% de um total de apenas 20% coletado. No primeiro cenário, 40% do volume de água consumido seria devolvido ao ambiente como esgoto tratado, enquanto no segundo cenário, apenas 20% do volume consumido seria tratado e retornado. Esta observação destaca a importância de não apenas focar na proporção de esgoto tratado, mas também na quantidade de esgoto que está sendo efetivamente coletada e tratada.
+
+Em seguida, a proporção entre o volume de esgoto tratado e o volume de água consumida foi analisada para informar qual a proporção de água consumida retorna para o meio ambiente em forma de esgoto tratado.</div>
+
+```{r fig.width=10, fig.height=5}
+prop_vol_esgo_trat_agua_cons_plot <- ggplot(data=df_estadual) +
+  geom_col(mapping = aes(x=estado_sigla, y=prop_vol_esgo_trat_agua_cons, color=regiao, fill=regiao), alpha=0.5) +
+  geom_hline(data=df_nacional, mapping=aes(yintercept = prop_vol_esgo_trat_agua_cons), color='red', size=0.2) +
+  ylim(0, 100) +
+  scale_fill_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Dark2") +
+  labs(x = 'Estado', y='Proporção (%)') +
+  ggtitle('Proporção entre o Volume de Esgoto Tratado e o Volume de Água Consumida') +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5, face = 'bold'),
+    axis.title = element_text(size=11,face='bold'),
+    axis.text = element_text(size=10),
+    legend.title = element_text(size =11),
+    legend.text = element_text(size=10),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+ggarrange(prop_vol_esgo_trat_agua_cons_plot,
+          ncol = 1, nrow = 1, common.legend = TRUE, legend = "bottom")
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">A partir da análise do gráfico apresentado acima, notou-se uma notável variação entre os estados quanto à eficiência no tratamento de esgoto em relação ao volume de água consumida. Estados como Goiás (GO) e Mato Grosso do Sul (MS) exibiram desempenhos superiores à média nacional, indicando que uma parcela significativa da água consumida nesses locais é coletada em forma de esgoto e tratada. Em contrapartida, estados como Rondônia (RO) e Pará (PA) apresentam proporções consideravelmente inferiores à média nacional, o que sugere que apenas uma pequena fração da água consumida é coletada em forma de esgoto e submetida a tratamento. Essa situação aponta para possíveis desafios relacionados à infraestrutura de saneamento e à gestão eficiente desses serviços nesses estados.
+
+De forma mais ampla, observa-se que, nacionalmente, cerca de 46% do volume de água consumida retorna em forma de esgoto tratado, com a maioria dos estados ainda abaixo dessa marca. Considerando as regiões, o Sudeste e Centro-Oeste lideram com proporções médias ligeiramente acima de 50%, seguidos pelo Sul. O Nordeste e o Norte, mais uma vez, apresentaram as menores proporções, com o Norte tratando uma média de 17,9% do esgoto em relação à água consumida na região. Isso implica que de cada 100 litros de água consumida no Norte, apenas 17,9 litros são tratados antes de retornar ao ambiente. É importante destacar que este estudo não avalia os métodos de tratamento de esgoto, portanto, "esgoto tratado" não necessariamente significa que a água alcançou um alto nível de qualidade antes de ser retornada nos mananciais.
+
+Na próxima fase, exploraremos a existência de correlações lineares entre essas variáveis. Os resultados dessa análise de correlação serão apresentados visualmente a seguir.</div>
+
+```{r fig.width=10, fig.height=10}
+df_estadual_cor <- cor(df_estadual[,-c('estado','regiao', 'estado_sigla','estado_sem_sigla')], method = "spearman")
+corrplot(df_estadual_cor)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">O gráfico de correlação apresentado fornece uma análise visual das relações entre diversas variáveis relacionadas ao abastecimento de água e esgotamento sanitário. Cada célula do gráfico representa o coeficiente de correlação entre duas variáveis, onde o tamanho e a cor do círculo indicam a força e a direção da correlação. Cores azuis representam correlações positivas, enquanto as cores vermelho-alaranjado indicam correlações negativas. Círculos maiores sugerem uma correlação mais forte.
+
+As dez primeiras variáveis do dataset exibiram exclusivamente correlações positivas, algumas das quais bastante fortes. Já as variáveis desenvolvidas ao longo do projeto mostraram uma gama mais ampla de correlações, com a maioria dos pares apresentando correlações positivas e algumas negativas. A magnitude dessas correlações abrangeu quase todo o espectro de valores.
+
+Na fase final deste trabalho, não se buscava examinar a correlação entre todas as variáveis, uma vez que isso consumiria um tempo considerável e alongaria ainda mais este relatório. Inicialmente, focamos nas correlações que apresentaram um coeficiente de correlação (R²) maior ou igual a 0,8 ou menor ou igual a -0,6.</div>
+
+```{r }
+list_of_R = c()
+list_row = c()
+list_col = c()
+list_side = c()
+for (i in colnames(df_estadual_cor)) {
+  for (j in rownames(df_estadual_cor)) {
+    if (i != j) {
+      if (df_estadual_cor[j,i] >= 0.8) {
+        list_of_R <- append(list_of_R, values = df_estadual_cor[j,i])
+        list_row <- append(list_row, values = j)
+        list_col <- append(list_col, values = i)
+        list_side <- append(list_side, values = 'positiva')
+      }
+      else if (df_estadual_cor[j,i] <= -0.6) {
+        list_of_R <- append(list_of_R, values = df_estadual_cor[j,i])
+        list_row <- append(list_row, values = j)
+        list_col <- append(list_col, values = i)
+        list_side <- append(list_side, values = 'negativa')
+      }
+    }
+  }
+}
+
+higher_correlations = data.frame(list_of_R, list_row, list_col, list_side) %>% arrange(desc(list_of_R))
+list_index_remove <- c()
+for (i in 2:length(higher_correlations$list_of_R)) {
+  if (higher_correlations$list_of_R[i-1] == higher_correlations$list_of_R[i]) {
+    if (higher_correlations$list_row[i-1] == higher_correlations$list_col[i] & 
+        higher_correlations$list_col[i-1] == higher_correlations$list_row[i]) {
+      list_index_remove <- append(list_index_remove, i-1)
+    }
+  }
+}
+
+higher_correlations <- higher_correlations[-list_index_remove,]
+list_index_remove <- c()
+for (i in 3:length(higher_correlations$list_of_R)) {
+  if (higher_correlations$list_of_R[i-2] == higher_correlations$list_of_R[i]) {
+    if (higher_correlations$list_row[i-2] == higher_correlations$list_col[i] & 
+        higher_correlations$list_col[i-2] == higher_correlations$list_row[i]) {
+      list_index_remove <- append(list_index_remove, i-2)
+    }
+  }
+}
+
+higher_correlations <- higher_correlations[-list_index_remove,]
+length(higher_correlations$list_of_R)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Foram selecionados 59 pares de variáveis que atenderam ao critério estabelecido. Estes pares foram submetidos a outros testes de correlação para uma análise mais detalhada, cujos resultados não serão apresentados. O código da próxima célula não foi executado durante a elaboração deste documento para evitar a geração de 59 gráficos de correlação, o que tornaria o documento excessivamente extenso e visualmente poluído.</div>
+
+```{r }
+#for (i in 1:length(higher_correlations$list_row)) {
+#  plot <- ggscatter(df_estadual, x = higher_correlations$list_row[i], y = higher_correlations$list_col[i], 
+#          add = "reg.line", conf.int = TRUE, 
+#          cor.coef = TRUE, cor.method = "pearson",
+#          xlab = higher_correlations$list_row[i], ylab = higher_correlations$list_col[i])
+#  print(plot)
+#}
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">A maioria dos pares de variáveis apresentou correlações positivas significativas e fortes, muitas das quais eram esperadas. Por exemplo, observou-se uma forte correlação entre o volume de água tratada e o número de municípios atendidos com abastecimento de água, bem como entre o volume de esgoto tratado e a receita operacional direta com esgoto. No entanto, selecionei 5 pares de variáveis que considerei particularmente interessantes para apresentar neste estudo.
+
+A figura abaixo apresenta 4 gráficos de pontos, que incluem a linha de regressão bem como seu intervalo de confiança. Cada gráfico representa um par de variáveis, que pode ser identificado pelo número impresso no canto superior esquerdo dos gráficos associado ao número de cada par analisado, que é apresentado na análise posterior. No entanto, logo abaixo dos gráficos, inserimos uma descrição para cada uma das siglas usadas nos títulos dos eixos, a fim de facilitar a interpretação dos mesmos.</div>
+
+```{r fig.width=10, fig.height=10}
+plot1 <- ggplot(df_estadual, aes(x = num_mun, y = GE05a)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x,
+              se = TRUE,
+              color = "blue", fill = "lightblue") +
+  geom_label(aes(x=0, y=840, label='1'),
+            color="blue", size=5 , fontface="bold" ) +
+  labs(x = 'NM', y='NMAAA') +
+  theme(
+    axis.title = element_text(size=8,face='bold'),
+    axis.text = element_text(size=7),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+plot2 <- ggplot(df_estadual, aes(x = num_mun, y = GE05b)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x,
+              se = TRUE,
+              color = "blue", fill = "lightblue") +
+  geom_label(aes(x=0, y=680, label='2'),
+            color="blue", size=5 , fontface="bold" ) +
+  labs(x = 'NM', y='NMAES') +
+  theme(
+    axis.title = element_text(size=8,face='bold'),
+    axis.text = element_text(size=7),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+plot3 <- ggplot(df_estadual, aes(x = populacao, y = prop_pop_aten_abas_agua)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x,
+              se = TRUE,
+              color = "blue", fill = "lightblue") +
+  geom_label(aes(x=0, y=130, label='3'),
+            color="blue", size=5 , fontface="bold" ) +
+  labs(x = 'Pop', y='PPAAA') +
+  theme(
+    axis.title = element_text(size=8,face='bold'),
+    axis.text = element_text(size=7),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+plot4 <- ggplot(df_estadual, aes(x = populacao, y = prop_pop_aten_esgo_sani)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x,
+              se = TRUE,
+              color = "blue", fill = "lightblue") +
+  geom_label(aes(x=0, y=130, label='4'),
+            color="blue", size=5 , fontface="bold" ) +
+  labs(x = 'Pop', y='PPAES') +
+  theme(
+    axis.title = element_text(size=8,face='bold'),
+    axis.text = element_text(size=7),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+
+annotate_figure(grid.arrange(plot1, plot2, plot3, plot4, ncol = 2, nrow = 2),
+                top = text_grob("Análise de Correlação entre alguns Pares de Variáveis", 
+               face = "bold", size = 12))
+```
+
+<div style="background: rgba(128,128,128,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">
+
+<p style="background: rgba(128,128,128,0.5); padding: 0.5em 0.5em 0.5em 0.5em; margin-right: 7em;"><b>Definição das siglas utilizadas para representar as variáveis nos títulos dos eixos x e y dos gráficos de correlação:</b></p>
+
+<ul>
+<li><b>NM</b>: Número de Municípios</li>
+<li><b>NMAAA</b>: Número de Municípios Atendidos com Abastecimento de Água</li>
+<li><b>NMAES</b>: Número de Municípios Atendidos com Esgotamento Sanitário</li>
+<li><b>Pop</b>: População</li>
+<li><b>PPAAA</b>: Proporção da População Atendida com Abastecimento de Água (%)</li>
+<li><b>PPAES</b>: Proporção da População Atendida com Esgotamento Sanitário (%)</li>
+</ul>
+</div>
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Uma análise minuciosa da correlação para cada um dos 4 pares de variáveis apresentados acima foi conduzida, incluindo o cálculo do coeficiente de correlação e do p-value para avaliar, respectivamente, a força e a significância estatística dessas relações. Os resultados serão apresentados a seguir.</div>
+
+<div style="background: rgba(198,230,251,0.3); padding: 1.5em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">
+
+<b>1.</b> Número de municípios e número de municípios atendidos com abastecimento de água.
+
+</div>
+
+```{r }
+cor.test(df_estadual$num_mun, df_estadual$GE05a)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1.5em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">
+
+<b>2.</b> Número de municípios e número de municípios atendidos com esgotamento sanitário.
+
+</div>
+
+
+```{r }
+cor.test(df_estadual$num_mun, df_estadual$GE05b)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1.5em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">
+
+<b>3.</b> População e proporção da população atendida com abastecimento de água.
+
+</div>
+
+```{r }
+cor.test(df_estadual$populacao, df_estadual$prop_pop_aten_abas_agua)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1.5em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">
+
+<b>4.</b> População e proporção da população atendida com esgotamento sanitário.
+
+</div>
+
+```{r }
+cor.test(df_estadual$populacao, df_estadual$prop_pop_aten_esgo_sani)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">O Gráfico 1 revelou uma relação linear positiva e significativa (p-value = 2.2e-16) entre o número total de municípios e aqueles atendidos com abastecimento de água, exibindo o maior coeficiente de correlação (R = 0.996) dentre os estudados. Já o Gráfico 2 apresentou uma relação linear positiva e significativa (p-value = 3.751e-10) entre o número total de municípios e os atendidos com esgotamento sanitário; no entanto, o coeficiente de correlação de 0.89 foi consideravelmente menor que o anterior, indicando maior variabilidade dos dados em torno da linha de regressão. Esses resultados sugerem que, quanto maior o número de municípios em um estado, maior é o número de municípios com cobertura de serviços de abastecimento de água e esgotamento sanitário, sendo mais notável para o primeiro.
+
+Por outro lado, a correlação entre a população total e a população atendida com abastecimento de água (Gráfico 3) não foi considerada significativa (p-value = 0.0979). Por outro lado, a relação linear entre a população total e a população atendida com esgotamento sanitário (Gráfico 4) foi positiva e significativa, mas com uma magnitude moderada (R = 0.55). Apesar de o número de municípios atendidos com serviços de água e esgoto aumentar com o total de municípios de um estado, o número de pessoas beneficiadas por esses serviços não necessariamente cresce proporcionalmente ao aumento da população.
+
+O próximo gráfico explorará a correlação entre o volume per capita de água tratada e a proporção entre o volume de água consumida e o volume de água tratada, detalhando mais essa relação nas análises subsequentes.</div>
+
+```{r fig.width=10, fig.height=5}
+ggplot(df_estadual, aes(x = prop_vol_agua_trat_pop_aten, y = prop_vol_agua_cons_agua_trat)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x,
+              se = TRUE,
+              color = "blue", fill = "lightblue") +
+  labs(x = 'VATPC', y='PVACVAT') +
+  theme(
+    axis.title = element_text(size=8,face='bold'),
+    axis.text = element_text(size=7),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(colour = 'black'),
+    panel.border = element_rect(size = 1, fill = NA)
+  )
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Semelhante às análises anteriores, uma avaliação mais aprofundada será realizada sobre a correlação entre o volume per capita de água tratada e a proporção entre o volume de água consumida e o volume de água tratada.</div>
+
+```{r }
+cor.test(df_estadual$prop_vol_agua_trat_pop_aten, df_estadual$prop_vol_agua_cons_agua_trat)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">O gráfico apresentado demonstrou uma correlação negativa significativa (p-valor = 2.14e-05) e de intensidade moderada a forte (R = 0.72) entre o volume per capita de água tratada e a proporção do volume de água consumida em relação ao volume de água tratada. Isso indica que quanto maior o volume per capita de água tratada, maiores são as perdas na sua distribuição, resultando em menores proporções do volume de água consumida em relação ao tratado. Deveria haver uma maior atenção voltada para as perdas nas redes de distribuição de água a fim de reduzir o desperdício de recursos, aumentando assim o volume de água disponível e o número de habitantes beneficiados por este serviço essencial que é o fornecimento de água à população.
+
+Para concluir, foram realizados dois testes de hipóteses utilizando ANOVA para explorar se existem diferenças significativas entre as regiões quanto à proporção da população atendida com abastecimento de água e esgotamento sanitário, diferenças essas que foram observadas visualmente no início deste projeto. Adicionalmente, o teste de Tukey foi empregado com o propósito de identificar quais pares de regiões mostraram diferenças significativas nos parâmetros analisados.</div>
+
+```{r } 
+anova_prop_pop_aten_abas_agua <- aov(prop_pop_aten_abas_agua ~ regiao, data = df_estadual)
+summary(anova_prop_pop_aten_abas_agua)
+TukeyHSD(anova_prop_pop_aten_abas_agua)
+```
+
+```{r } 
+anova_prop_pop_aten_esgo_sani <- aov(prop_pop_aten_esgo_sani ~ regiao, data = df_estadual)
+summary(anova_prop_pop_aten_esgo_sani)
+TukeyHSD(anova_prop_pop_aten_esgo_sani)
+```
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">Ao analisar a proporção da população atendida com abastecimento de água, notou-se que a região Norte apresentou cobertura média para este serviço significativamente menor em comparação às regiões Sul, Sudeste e Centro-Oeste. Da mesma forma, os valores médios para a proporção da população atendida com esgotamento sanitário na região Norte também foram significativamente inferiores aos observados nas regiões Sul e Sudeste. Adicionalmente, a região Sudeste registrou valores médios significativamente superiores em comparação à região Nordeste. Esses achados corroboram as observações feitas ao longo deste estudo, destacando a urgente necessidade de melhorias nas condições de saneamento básico nas regiões Norte e Nordeste, que enfrentam desafios mais acentuados com a falta de abastecimento de água e serviços de esgotamento sanitário.
+
+Finalmente, a seguir é apresentado um gráfico de bolhas interativo, no qual os eixos x e y representam, respectivamente, a proporção da população atendida com abastecimento de água e com esgotamento sanitário. O tamanho das bolhas indica a população de cada estado, enquanto as cores diferenciam as regiões. Esta figura oferece uma visão abrangente da situação do saneamento no Brasil para o ano de 2019. No próximo segmento, concluiremos este projeto com as principais conclusões.</div>
+
+```{r fig.width=10, fig.height=6}
+fig <- plot_ly(df_estadual, x = ~prop_pop_aten_abas_agua, y = ~prop_pop_aten_esgo_sani, text = ~estado, type = 'scatter', mode = 'markers', size = ~populacao, color = ~regiao, colors = 'Dark2',
+        #Choosing the range of the bubbles' sizes:
+        sizes = c(10, 50),
+        marker = list(opacity = 0.5, sizemode = 'diameter'))
+
+fig <- fig %>%
+  layout(title = '<b>Proporção da População Atentida com Abastecimento de Água e Esgotamento Sanitário</b>',
+         plot_bgcolor = '#DEDEDE',
+         xaxis = list(title = '<b>População Atendida com Abastecimento de Água (%)</b>',
+                      range = c(0, 100),
+                      showgrid = FALSE,
+                      mirror=TRUE,
+                      ticks='outside',
+                      showline=TRUE),
+         yaxis = list(title = '<b>População Atendida com Esgotamento Sanitário (%)</b>',
+                      range = c(0, 100),
+                      showgrid = FALSE,
+                      mirror=TRUE,
+                      ticks='outside',
+                      showline=TRUE),
+         showlegend = TRUE,
+         legend = list(title = list(text = '<b>Região</b>'),
+                       font = list(size = 7),
+                       titlefont = list(size = 8),
+                       x = 0.03, y = 0.95),
+         margin = list(l = 50, r = 50, b = 40, t = 80),
+         paper_bgcolor = 'white',
+         plot_bgcolor = 'white',
+         hovermode = 'closest')
+
+fig
+```
+
+<div style="margin-top: 2em"></div>
+
+<div style="background: #89CFF0; padding: 0.5em 0.5em 1.2em 0.5em; text-align: center"><h3>Principais Conclusões</h3></div>
+
+<div style="margin-top: 2em"></div>
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">A análise exploratória dos dados de saneamento nos diversos estados do Brasil revelou discrepâncias significativas em termos de acesso e qualidade dos serviços de abastecimento de água e esgotamento sanitário. Este estudo destacou as variações regionais profundas que persistem apesar dos avanços em algumas áreas.
+
+<div style="margin-top: 1em"></div>
+
+<ul>
+<li><b>Disparidades Regionais em Saneamento:</b></li>
+</ul>
+
+O abastecimento de água mostra-se relativamente mais uniforme em termos de cobertura entre os estados, com alguns alcançando 100% de cobertura nos municípios. No entanto, o esgotamento sanitário apresenta uma realidade diferente, com uma divisão regional significativa. Enquanto o Sudeste exibe uma infraestrutura de saneamento mais desenvolvida, o Norte e o Nordeste enfrentam desafios substanciais, com coberturas muitas vezes inferiores a 10% da população atendida.
+
+<div style="margin-top: 1em"></div>
+
+<ul>
+<li><b>Necessidade de Investimentos Direcionados:</b></li>
+</ul>
+
+Os dados apontam para uma necessidade urgente de políticas públicas e investimentos direcionados que melhorem a infraestrutura de saneamento nas regiões mais carentes. Investimentos são necessários tanto para a melhoria da rede de distribuição de água — a fim de reduzir perdas significativas durante a distribuição — quanto para ampliar e melhorar as facilidades de tratamento de esgoto.
+
+<div style="margin-top: 1em"></div>
+
+<ul>
+<li><b>Eficiência Operacional e Desigualdades Econômicas:</b></li>
+</ul>
+
+Estados com maiores receitas operacionais, como São Paulo, exibem uma gestão e infraestrutura de saneamento mais maduras. Por outro lado, estados com receitas operacionais menores, particularmente no Norte e Nordeste, evidenciam desafios de infraestrutura inadequada e capacidade de cobrança limitada. Isso reforça a necessidade de estratégias adaptadas às realidades econômicas e demográficas de cada estado.
+
+<div style="margin-top: 1em"></div>
+
+<ul>
+<li><b>Perdas no Sistema de Distribuição de Água:</b></li>
+</ul>
+
+A diferença entre a água tratada e a água consumida em muitos estados sugere perdas significativas dentro dos sistemas de distribuição, um problema agravado por infraestruturas antigas ou mal mantidas.
+
+<div style="margin-top: 1em"></div>
+
+<ul>
+<li><b>Desafios no Tratamento de Esgoto:</b></li>
+</ul>
+
+A discrepância entre a água consumida e esgoto tratado em muitos estados destaca desafios críticos no setor de saneamento, onde o tratamento de esgoto não está em par com o consumo, levantando preocupações ambientais e de saúde pública.
+
+<div style="background: rgba(198,230,251,0.3); padding: 1em 1em 1em 1em; margin: 1em 0 1em 0; text-align: justify">
+<p>As políticas públicas nacionais e regionais devem levar em conta essas disparidades ao planejar melhorias e a alocação de recursos, visando garantir um acesso equitativo a esses serviços essenciais.</p>
+
+<p>Em suma, este estudo revela a importância de uma abordagem segmentada e bem informada para resolver os problemas de saneamento no Brasil. Com foco nas áreas mais necessitadas e na otimização dos recursos existentes, é possível avançar significativamente na direção de um acesso mais universal e equitativo aos serviços de saneamento básico.</p>
+</div>
+
+</div>
